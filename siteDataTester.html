@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script>
+    function failure_(e) {
+      console.log("Error: ", e);
+    }
+
+    function setCacheStorage(x) {
+      return caches.open("cache").then(cache => cache.put("/foo", new Response(x)));
+    }
+
+    function getCacheStorage() {
+      return caches.open("cache").then(cache => cache.match(new Request("/foo"))).then(r => r && r.text());
+    }
+
+    function setWebSql(x) {
+      return new Promise(resolve => {
+        let db = openDatabase('testdb', '1.0', 'a test db', 1024);
+        db.transaction(function (tx) {
+          tx.executeSql('CREATE TABLE IF NOT EXISTS foo (text)');
+          tx.executeSql(`INSERT OR REPLACE INTO foo (text) VALUES ("${x}")`);
+        }, resolve, resolve);
+      });
+    }
+
+    function getWebSql() {
+      return new Promise(resolve => {
+        let db = openDatabase('testdb', '1.0', 'a test db', 1024);
+        db.transaction(function (tx) {
+          tx.executeSql('CREATE TABLE IF NOT EXISTS foo (text)');
+          tx.executeSql('SELECT * FROM foo ORDER BY text DESC LIMIT 1', [], function (tx, results) {
+            resolve(results.rows.length && results.rows.item(0)["text"]);
+          });
+        });
+      });
+    }
+
+    function setIndexedDb(x) {
+      return new Promise(resolve => {
+        let open = indexedDB.open('db', 2);
+        open.onupgradeneeded = () => {
+          open.result.createObjectStore('store', { keyPath: "id" });
+        }
+        open.onsuccess = () => {
+          let db = open.result;
+          var tx = db.transaction("store", "readwrite");
+          var store = tx.objectStore("store");
+          store.put({ id: 42, value: x });
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+        }
+      });
+    }
+
+    function getIndexedDb() {
+      return new Promise(resolve => {
+        let open = indexedDB.open('db');
+        open.onsuccess = () => {
+          let db = open.result;
+          var hasStore = open.result.objectStoreNames.contains('store');
+          if (!hasStore) {
+            db.close();
+            resolve();
+            return;
+          }
+          var tx = db.transaction("store", "readwrite");
+          var store = tx.objectStore("store");
+
+          var getResult = store.get(42);
+          getResult.onsuccess = () => resolve(getResult.result && getResult.result.value);
+
+          tx.oncomplete = () => {
+            db.close();
+          };
+        }
+      });
+    }
+
+    function openFile_(name, options, callback, error) {
+      window.webkitRequestFileSystem(TEMPORARY, 1024, function (fs) {
+        console.log("FS requested");
+        fs.root.getFile(name, options, callback, error);
+      }, error);
+    }
+
+    function setFileSystem(x) {
+      return new Promise(resolve => {
+        openFile_('foo.txt', { create: true }, fileEntry => {
+          fileEntry.createWriter(function (fileWriter) {
+            fileWriter.onwriteend = function (e) {
+              resolve();
+            };
+            var blob = new Blob([x], { type: 'text/plain' });
+            fileWriter.write(blob);
+          }, failure_);
+        }, () => resolve());
+      });
+    }
+
+    function getFileSystem() {
+      return new Promise(resolve => {
+        openFile_('foo.txt', { create: true }, fileEntry => {
+          fileEntry.file(function (file) {
+            var reader = new FileReader();
+            reader.onloadend = function (e) {
+              resolve(this.result);
+            };
+            reader.readAsText(file);
+          }, failure_);
+        }, () => resolve("N/A"));
+      });
+    }
+
+    let datatypes = {
+      "cookies": [() => decodeURIComponent(document.cookie), x => document.cookie = `x=${encodeURIComponent(x)}; Max-Age=2592000`],
+      "localStorage": [() => localStorage.getItem('x'), x => localStorage.setItem('x', x)],
+      "sessionStorage": [() => sessionStorage.getItem('x'), x => sessionStorage.setItem('x', x)],
+      "webSQL": [getWebSql, setWebSql],
+      "indexedDB": [getIndexedDb, setIndexedDb],
+      "fileSystem": [getFileSystem, setFileSystem],
+      "cacheStorage": [getCacheStorage, setCacheStorage],
+    }
+
+    async function readData() {
+      let out = "";
+      for (let t of Object.keys(datatypes)) {
+        let data = await datatypes[t][0]();
+        console.log(t);
+        console.log(data);
+        out += `<div>${t}<span style="float:right">${data ? data : "-"}<span></div>`;
+      };
+      document.getElementById("output").innerHTML = out;
+    }
+
+    async function writeData() {
+      let time = new Date().toJSON();
+      for (let t of Object.keys(datatypes)) {
+        console.log(t)
+        let data = await datatypes[t][1](time);
+      };
+      readData();
+    }
+
+  </script>
+</head>
+
+<body onload="readData()">
+  <h1>Site Data Tester</h1>
+  <button onclick="readData()">Read</button>
+  <button onclick="writeData()">Write</button>
+  <p>
+    <div style="width: 300px" id="output"></div>
+</body>
+
+</html>
