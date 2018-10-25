@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8" />
   <script>
     function failure_(e) {
       console.log("Error: ", e);
@@ -15,6 +16,8 @@
     }
 
     function setWebSql(x) {
+      if (!window.openDatabase)
+        return;
       return new Promise(resolve => {
         let db = openDatabase('testdb', '1.0', 'a test db', 1024);
         db.transaction(function (tx) {
@@ -25,6 +28,8 @@
     }
 
     function getWebSql() {
+      if (!window.openDatabase)
+        return "not supported";
       return new Promise(resolve => {
         let db = openDatabase('testdb', '1.0', 'a test db', 1024);
         db.transaction(function (tx) {
@@ -87,6 +92,8 @@
     }
 
     function setFileSystem(x) {
+      if (!window.webkitRequestFileSystem)
+        return;
       return new Promise(resolve => {
         openFile_('foo.txt', { create: true }, fileEntry => {
           fileEntry.createWriter(function (fileWriter) {
@@ -101,6 +108,8 @@
     }
 
     function getFileSystem() {
+      if (!window.webkitRequestFileSystem)
+        return "not supported";
       return new Promise(resolve => {
         openFile_('foo.txt', { create: true }, fileEntry => {
           fileEntry.file(function (file) {
@@ -152,7 +161,7 @@
   <button onclick="readData()">Read</button>
   <button onclick="writeData()">Write</button>
   <p>
-    <div style="width: 300px" id="output"></div>
+    <div style="width: 400px" id="output"></div>
 </body>
 
 </html>
