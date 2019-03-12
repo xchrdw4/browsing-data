@@ -45,7 +45,7 @@
     }
 
     function setIndexedDb(x) {
-      return new Promise(resolve => {
+      return new Promise((resolve, reject) => {
         let open = indexedDB.open('db', 2);
         open.onupgradeneeded = () => {
           open.result.createObjectStore('store', { keyPath: "id" });
@@ -60,11 +60,12 @@
             resolve();
           };
         }
+        open.onerror = reject;
       });
     }
 
     function getIndexedDb() {
-      return new Promise(resolve => {
+      return new Promise((resolve, reject) => {
         let open = indexedDB.open('db');
         open.onsuccess = () => {
           let db = open.result;
@@ -84,6 +85,7 @@
             db.close();
           };
         }
+        open.onerror = reject;
       });
     }
 
@@ -161,9 +163,12 @@
     async function readData() {
       let out = "";
       for (let t of Object.keys(datatypes)) {
-        let data = await datatypes[t][0]();
-        console.log(t);
-        console.log(data);
+        let data;
+        try {
+          data = await datatypes[t][0]();
+        } catch (e) {
+          console.log("error reading data for " + t);
+        }
         out += `<div>${t}<span style="float:right">${data ? data : "-"}<span></div>`;
       };
       document.getElementById("output").innerHTML = out;
@@ -172,8 +177,11 @@
     async function writeData() {
       let time = new Date().toJSON();
       for (let t of Object.keys(datatypes)) {
-        console.log(t)
-        let data = await datatypes[t][1](time);
+        try {
+          let data = await datatypes[t][1](time);
+        } catch (e) {
+          console.log("error writing data for " + t, e);
+        }
       };
       readData();
     }
