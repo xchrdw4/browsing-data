@@ -167,7 +167,7 @@
         try {
           data = await datatypes[t][0]();
         } catch (e) {
-          console.log("error reading data for " + t);
+          console.log("error reading data for " + t, e);
         }
         out += `<div>${t}<span style="float:right">${data ? data : "-"}<span></div>`;
       };
