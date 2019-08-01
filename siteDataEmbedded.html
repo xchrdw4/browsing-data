@@ -3,8 +3,14 @@
 <html>
 <head>
   <meta charset="utf-8" />
+  <script>
+  function ready() {
+      document.getElementById("domain").innerText = document.domain;
+    }
+  </script>
 </head>
-<body>
+<body onload="ready()">
+  <p id="domain"></p>
   <iframe src="https://xchrdw.github.io/browsing-data/siteDataTester.html" width="600px" height="600px"></iframe>
 </body>
 

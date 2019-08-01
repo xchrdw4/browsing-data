@@ -186,11 +186,17 @@
       readData();
     }
 
+    function ready() {
+      document.getElementById("domain").innerText = document.domain;
+      readData();
+    }
   </script>
 </head>
 
-<body onload="readData()">
+<body onload="ready()">
+  <p id="domain"></p>
   <h1>Site Data Tester</h1>
+  
   <button onclick="readData()">Read</button>
   <button onclick="writeData()">Write</button>
   <p>
