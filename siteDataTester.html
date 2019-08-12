@@ -133,9 +133,13 @@
       return result && decodeURIComponent(result[1]);
     }
 
-    function setServiceWorker(x) {
+    async function setServiceWorker(x) {
       if (!navigator.serviceWorker)
         return;
+      let regs = await navigator.serviceWorker.getRegistrations()
+      for (let reg of regs) {
+        reg.unregister();
+      }
       return navigator.serviceWorker.register("empty.js", {"scope": encodeURIComponent(x)});
     }
 
@@ -148,6 +152,32 @@
       return decodeURIComponent(regs[regs.length-1].scope.match(".*\/(.*)")[1])
     }
 
+    let sharedWorker = new SharedWorker("sharedWorker.js");
+    let sharedWorkerConnected = false;
+    sharedWorker.onerror = console.log;
+    sharedWorker.port.onmessage = e => {
+      sharedWorkerConnected = e.data.connected;
+    }
+    sharedWorker.port.start();
+
+    function setSharedWorker(x) {
+      if (!sharedWorkerConnected)
+        return;
+      return sharedWorker.port.postMessage({"value": x});
+    }
+
+    async function getSharedWorker() {
+      if (!sharedWorkerConnected)
+        return;
+      return new Promise(resolve => {
+        sharedWorker.port.onmessage = e => {
+          resolve(e.data.value); 
+        };
+        sharedWorker.port.postMessage({});
+        setTimeout(()=>resolve("timeout"), 50);
+      });
+    }
+
     let datatypes = {
       "cookies": [() => getCookie('x'), x => document.cookie = `x=${encodeURIComponent(x)}; Max-Age=2592000`],
       "localStorage": [() => localStorage.getItem('x'), x => localStorage.setItem('x', x)],
@@ -158,6 +188,7 @@
       "serviceWorker": [getServiceWorker, setServiceWorker],
       "sessionCookies": [() => getCookie('y'), x => document.cookie = `y=${encodeURIComponent(x)};`],
       "sessionStorage": [() => sessionStorage.getItem('x'), x => sessionStorage.setItem('x', x)],
+      "sharedWorker": [getSharedWorker, setSharedWorker],
     }
 
     async function readData() {
