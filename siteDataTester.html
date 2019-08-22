@@ -152,13 +152,19 @@
       return decodeURIComponent(regs[regs.length-1].scope.match(".*\/(.*)")[1])
     }
 
-    let sharedWorker = new SharedWorker("sharedWorker.js");
+    
+    let sharedWorker;
     let sharedWorkerConnected = false;
-    sharedWorker.onerror = console.log;
-    sharedWorker.port.onmessage = e => {
-      sharedWorkerConnected = e.data.connected;
+    try {
+      sharedWorker = new SharedWorker("sharedWorker.js");
+      sharedWorker.onerror = console.log;
+      sharedWorker.port.onmessage = e => {
+        sharedWorkerConnected = e.data.connected;
+      }
+      sharedWorker.port.start();
+    } catch(e) {
+      console.log("failed to create worker", e);
     }
-    sharedWorker.port.start();
 
     function setSharedWorker(x) {
       if (!sharedWorkerConnected)
