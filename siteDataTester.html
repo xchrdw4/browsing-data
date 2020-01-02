@@ -156,28 +156,28 @@
 
     function connectSharedWorker() {
       return new Promise(resolve, reject => {
-      try {
-        sharedWorker = new SharedWorker("sharedWorker.js");
-        sharedWorker.onerror = reject;
-        sharedWorker.port.onmessage = resolve;
-        sharedWorker.port.start();
-      } catch(e) {
-        console.log("failed to create worker", e);
-        reject();
-      }
-    });
-  }
+        try {
+          sharedWorker = new SharedWorker("sharedWorker.js");
+          sharedWorker.onerror = reject;
+          sharedWorker.port.onmessage = resolve;
+          sharedWorker.port.start();
+        } catch (e) {
+          console.log("failed to create worker", e);
+          reject();
+        }
+      });
+    }
 
     function setSharedWorker(x) {
-      return connectSharedWorker().then(() => 
-        sharedWorker.port.postMessage({"value": x})
+      return connectSharedWorker().then(() =>
+        sharedWorker.port.postMessage({"value": x })
       );
     }
 
     async function getSharedWorker() {
       if (typeof SharedWorker === 'undefined')
         return "not supported";
-      return connectSharedWorker().then(() => 
+      return connectSharedWorker().then(() =>
         new Promise(resolve => {
           sharedWorker.port.onmessage = e => {
             resolve(e.data.value);
@@ -204,14 +204,16 @@
     }
 
     let datatypes = {
-      "Cookies": [() => getCookie('x'), x => document.cookie = `x=${encodeURIComponent(x)}; Max-Age=2592000`],
+      "Cookies": [() => getCookie('regular'), x => document.cookie = `regular=${encodeURIComponent(x)}; Max-Age=2592000; Secure`],
+      "Cookies (SS=None)": [() => getCookie('regular_ssnone'), x => document.cookie = `regular_ssnone=${encodeURIComponent(x)}; Max-Age=2592000; SameSite=None; Secure`],
       "LocalStorage": [() => localStorage.getItem('x'), x => localStorage.setItem('x', x)],
       "WebSQL": [getWebSql, setWebSql],
       "IndexedDB": [getIndexedDb, setIndexedDb],
       "FileSystem": [getFileSystem, setFileSystem],
       "CacheStorage": [getCacheStorage, setCacheStorage],
       "ServiceWorker": [getServiceWorker, setServiceWorker],
-      "SessionCookies": [() => getCookie('y'), x => document.cookie = `y=${encodeURIComponent(x)};`],
+      "SessionCookies": [() => getCookie('session'), x => document.cookie = `session=${encodeURIComponent(x)}; Secure`],
+      "SessionCookies (SS=None)": [() => getCookie('session_ssnone'), x => document.cookie = `session_ssnone=${encodeURIComponent(x)}; SameSite=None; Secure`],
       "SessionStorage": [() => sessionStorage.getItem('x'), x => sessionStorage.setItem('x', x)],
       "SharedWorker": [getSharedWorker, setSharedWorker],
       "WebLocks": [getWebLock, setWebLock],
@@ -256,7 +258,7 @@
   <button onclick="readData()">Read</button>
   <button onclick="writeData()">Write</button>
   <p>
-    <div style="width: 400px" id="output"></div>
+    <div style="width: 460px; font-size: 16px" id="output"></div>
 </body>
 
 </html>
