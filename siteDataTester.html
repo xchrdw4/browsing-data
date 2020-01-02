@@ -153,42 +153,46 @@
     }
 
     let sharedWorker;
-    let sharedWorkerConnected = false;
-    try {
-      sharedWorker = new SharedWorker("sharedWorker.js");
-      sharedWorker.onerror = console.log;
-      sharedWorker.port.onmessage = e => {
-        sharedWorkerConnected = e.data.connected;
+
+    function connectSharedWorker() {
+      return new Promise(resolve, reject => {
+      try {
+        sharedWorker = new SharedWorker("sharedWorker.js");
+        sharedWorker.onerror = reject;
+        sharedWorker.port.onmessage = resolve;
+        sharedWorker.port.start();
+      } catch(e) {
+        console.log("failed to create worker", e);
+        reject();
       }
-      sharedWorker.port.start();
-    } catch(e) {
-      console.log("failed to create worker", e);
-    }
+    });
+  }
 
     function setSharedWorker(x) {
-      if (!sharedWorkerConnected)
-        return;
-      return sharedWorker.port.postMessage({"value": x});
+      return connectSharedWorker().then(() => 
+        sharedWorker.port.postMessage({"value": x})
+      );
     }
 
     async function getSharedWorker() {
-      if (!sharedWorkerConnected)
-        return;
-      return new Promise(resolve => {
-        sharedWorker.port.onmessage = e => {
-          resolve(e.data.value);
-        };
-        sharedWorker.port.postMessage({});
-        setTimeout(() => resolve("timeout"), 50);
-      });
+      if (typeof SharedWorker === 'undefined')
+        return "not supported";
+      return connectSharedWorker().then(() => 
+        new Promise(resolve => {
+          sharedWorker.port.onmessage = e => {
+            resolve(e.data.value);
+          };
+          sharedWorker.port.postMessage({});
+        })
+      );
     }
 
     let lock_promise;
     function setWebLock(x) {
       navigator.locks.request(x, lock => {
         lock_promise = new Promise((res, rej) => { });
+        // Lock will be held while lock_promise exists.
         return lock_promise;
-        // Now lock will be held while lock_promise exists.
       });
     }
 
