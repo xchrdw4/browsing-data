@@ -133,6 +133,10 @@
       return result && decodeURIComponent(result[1]);
     }
 
+    function setCookie(name, x, flags) {
+      document.cookie = `${name}=${encodeURIComponent(x)}; ${flags}`;
+    }
+
     async function setServiceWorker(x) {
       if (!navigator.serviceWorker)
         return;
@@ -140,7 +144,7 @@
       for (let reg of regs) {
         reg.unregister();
       }
-      return navigator.serviceWorker.register("empty.js", {"scope": encodeURIComponent(x)});
+      return navigator.serviceWorker.register("empty.js", { "scope": encodeURIComponent(x) });
     }
 
     async function getServiceWorker() {
@@ -149,7 +153,7 @@
       let regs = await navigator.serviceWorker.getRegistrations();
       if (regs.length == 0)
         return false;
-      return decodeURIComponent(regs[regs.length-1].scope.match(".*\/(.*)")[1])
+      return decodeURIComponent(regs[regs.length - 1].scope.match(".*\/(.*)")[1])
     }
 
     let sharedWorker;
@@ -170,7 +174,7 @@
 
     function setSharedWorker(x) {
       return connectSharedWorker().then(() =>
-        sharedWorker.port.postMessage({"value": x })
+        sharedWorker.port.postMessage({ "value": x })
       );
     }
 
@@ -203,18 +207,51 @@
       return;
     }
 
+    function ab2str(buf) {
+      return String.fromCharCode.apply(null, buf);
+    }
+    function str2ab(str) {
+      var buf = new SharedArrayBuffer(str.length*2); // 2 bytes for each char
+      var bufView = new Uint16Array(buf);
+      for (var i=0; i < str.length; i++) {
+        bufView[i] = str.charCodeAt(i);
+      }
+      return bufView;
+    }
+
+    async function setNativeIO(x) {
+      var f = await nativeIO.open("file");
+      f.write(str2ab(x), 0)
+      f.close();
+    }
+
+    async function getNativeIO() {
+      if (typeof nativeIO === 'undefined')
+        return "not supported";
+      let dir = await nativeIO.getAll();
+      if (!dir.length) 
+        return;
+      
+      var buf = new Uint16Array(new SharedArrayBuffer(100));
+      var f = await nativeIO.open("file");
+      await f.read(buf, 0); 
+      f.close();
+      return ab2str(buf);
+    }
+
     let datatypes = {
-      "Cookies": [() => getCookie('regular'), x => document.cookie = `regular=${encodeURIComponent(x)}; Max-Age=2592000; Secure`],
-      "Cookies (SS=None)": [() => getCookie('regular_ssnone'), x => document.cookie = `regular_ssnone=${encodeURIComponent(x)}; Max-Age=2592000; SameSite=None; Secure`],
+      "Cookies": [() => getCookie('regular'), (x) => setCookie('regular', x, 'Max-Age=2592000; Secure')],
+      "Cookies (SS=None)": [() => getCookie('regular_ssnone'), (x) => setCookie('regular_ssnone', x, 'Max-Age=2592000; SameSite=None; Secure')],
       "LocalStorage": [() => localStorage.getItem('x'), x => localStorage.setItem('x', x)],
       "WebSQL": [getWebSql, setWebSql],
       "IndexedDB": [getIndexedDb, setIndexedDb],
       "FileSystem": [getFileSystem, setFileSystem],
       "CacheStorage": [getCacheStorage, setCacheStorage],
       "ServiceWorker": [getServiceWorker, setServiceWorker],
-      "SessionCookies": [() => getCookie('session'), x => document.cookie = `session=${encodeURIComponent(x)}; Secure`],
-      "SessionCookies (SS=None)": [() => getCookie('session_ssnone'), x => document.cookie = `session_ssnone=${encodeURIComponent(x)}; SameSite=None; Secure`],
+      "SessionCookies": [() => getCookie('session'), x => setCookie('session', x, 'Secure')],
+      "SessionCookies (SS=None)": [() => getCookie('session_ssnone'), x => setCookie('session_ssnone', x, 'SameSite=None; Secure')],
       "SessionStorage": [() => sessionStorage.getItem('x'), x => sessionStorage.setItem('x', x)],
+      "NativeIO": [getNativeIO, setNativeIO],
       "SharedWorker": [getSharedWorker, setSharedWorker],
       "WebLocks": [getWebLock, setWebLock],
     }
@@ -245,9 +282,24 @@
       readData();
     }
 
+    // function displayStorageAccess() {
+    //   if (!document.hasStorageAccess)
+    //     return;
+    //   document.hasStorageAccess((result) => 
+    //     document.getElementById("storageaccess").innerText = result);
+    // }
+
+    // function requestStorageAccess() {
+    //   if (!document.requestStorageAccess) 
+    //     return;
+
+    //   document.requestStorageAccess(displayStorageAccess);  
+    // }
+
     function ready() {
       document.getElementById("domain").innerText = document.domain;
       readData();
+      //displayStorageAccess()
     }
   </script>
 </head>
@@ -257,8 +309,10 @@
   <h1>Site Data Tester</h1>
   <button onclick="readData()">Read</button>
   <button onclick="writeData()">Write</button>
+  <!-- <button onclick="requestStorageAccess()">RequestStorageAccess</button> -->
   <p>
-    <div style="width: 460px; font-size: 16px" id="output"></div>
+  <div style="width: 460px; font-size: 16px" id="output"></div>
+  <div style="width: 460px; font-size: 16px" id="storageaccess"></div>
 </body>
 
 </html>
