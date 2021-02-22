@@ -267,7 +267,10 @@
 
     async function setWorker(type, x) {
       let worker = new Worker("worker.js");
-      worker.postMessage(["set", type, x]);
+      return new Promise(resolve => {
+        worker.onmessage = resolve;
+        worker.postMessage(["set", type, x]);
+      });
     }
 
     let datatypes = {
