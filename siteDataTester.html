@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8" />
   <script>
@@ -124,7 +125,7 @@
             };
             reader.readAsText(file);
           }, failure_);
-        }, () => resolve("N/A"));
+        }, () => resolve());
       });
     }
 
@@ -211,9 +212,9 @@
       return String.fromCharCode.apply(null, buf);
     }
     function str2ab(str) {
-      var buf = new SharedArrayBuffer(str.length*2); // 2 bytes for each char
+      var buf = new SharedArrayBuffer(str.length * 2); // 2 bytes for each char
       var bufView = new Uint16Array(buf);
-      for (var i=0; i < str.length; i++) {
+      for (var i = 0; i < str.length; i++) {
         bufView[i] = str.charCodeAt(i);
       }
       return bufView;
@@ -229,31 +230,63 @@
       if (typeof nativeIO === 'undefined')
         return "not supported";
       let dir = await nativeIO.getAll();
-      if (!dir.length) 
+      if (!dir.length)
         return;
-      
+
       var buf = new Uint16Array(new SharedArrayBuffer(100));
       var f = await nativeIO.open("file");
-      await f.read(buf, 0); 
+      await f.read(buf, 0);
       f.close();
       return ab2str(buf);
+    }
+
+    async function getNavigatorStorage() {
+      let d = await navigator.storage.getDirectory();
+      let h = await d.getFileHandle("foo.txt");
+      let f = await h.getFile();
+      return await f.text();
+    }
+
+    async function setNavigatorStorage(x) {
+      let d = await navigator.storage.getDirectory();
+      let h = await d.getFileHandle("foo.txt", { create: true });
+      let w = await h.createWritable();
+      w.write(x);
+      w.close();
+    }
+
+    async function getWorker(type) {
+      let worker = new Worker("worker.js");
+      return new Promise(resolve => {
+        worker.onmessage = e => {
+          resolve(e.data);
+        };
+        worker.postMessage(["get", type])
+      });
+    }
+
+    async function setWorker(type, x) {
+      let worker = new Worker("worker.js");
+      worker.postMessage(["set", type, x]);
     }
 
     let datatypes = {
       "Cookies": [() => getCookie('regular'), (x) => setCookie('regular', x, 'Max-Age=2592000; Secure')],
       "Cookies (SS=None)": [() => getCookie('regular_ssnone'), (x) => setCookie('regular_ssnone', x, 'Max-Age=2592000; SameSite=None; Secure')],
+      "SessionCookies": [() => getCookie('session'), x => setCookie('session', x, 'Secure')],
+      "SessionCookies (SS=None)": [() => getCookie('session_ssnone'), x => setCookie('session_ssnone', x, 'SameSite=None; Secure')],
       "LocalStorage": [() => localStorage.getItem('x'), x => localStorage.setItem('x', x)],
       "WebSQL": [getWebSql, setWebSql],
       "IndexedDB": [getIndexedDb, setIndexedDb],
       "FileSystem": [getFileSystem, setFileSystem],
       "CacheStorage": [getCacheStorage, setCacheStorage],
       "ServiceWorker": [getServiceWorker, setServiceWorker],
-      "SessionCookies": [() => getCookie('session'), x => setCookie('session', x, 'Secure')],
-      "SessionCookies (SS=None)": [() => getCookie('session_ssnone'), x => setCookie('session_ssnone', x, 'SameSite=None; Secure')],
       "SessionStorage": [() => sessionStorage.getItem('x'), x => sessionStorage.setItem('x', x)],
+      "Navigator.storage": [getNavigatorStorage, setNavigatorStorage],
       "NativeIO": [getNativeIO, setNativeIO],
-      "SharedWorker": [getSharedWorker, setSharedWorker],
-      "WebLocks": [getWebLock, setWebLock],
+      "[worker] Navigator.storage ": [() => getWorker("Navigator.storage"), (x) => setWorker("Navigator.storage", x)],
+      "[js] SharedWorker": [getSharedWorker, setSharedWorker],
+      "[js] WebLocks": [getWebLock, setWebLock],
     }
 
     async function readData() {
