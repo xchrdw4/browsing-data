@@ -319,10 +319,18 @@
     }
 
     function displayStorageAccess(message) {
-      if (!document.hasStorageAccess)
+      if (!document.hasStorageAccess) {
+        document.getElementById("storageaccess").innerHTML =
+          "<br>document.hasStorageAccess() not available" +
+          "<br>navigator.cookieEnabled: " + navigator.cookieEnabled
+
         return;
+      }
       document.hasStorageAccess().then(result =>
-        document.getElementById("storageaccess").innerText = message + result);
+        document.getElementById("storageaccess").innerHTML = message +
+        "<br>document.hasStorageAccess(): " + result +
+        "<br>navigator.cookieEnabled: " + navigator.cookieEnabled
+      );
     }
 
     function requestStorageAccessClicked() {
@@ -330,14 +338,14 @@
         return;
 
       document.requestStorageAccess()
-        .then(displayStorageAccess.bind(null, "RSA granted. Status:"))
-        .catch(displayStorageAccess.bind(null, "RSA failed. Status:"));
+        .then(displayStorageAccess.bind(null, "RSA granted."))
+        .catch(displayStorageAccess.bind(null, "RSA failed."));
     }
 
     function ready() {
       document.getElementById("domain").innerText = document.domain;
       readData();
-      displayStorageAccess("StorageAccess: ")
+      displayStorageAccess("")
     }
   </script>
 </head>
