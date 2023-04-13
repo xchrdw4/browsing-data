@@ -318,24 +318,26 @@
       readData();
     }
 
-    // function displayStorageAccess() {
-    //   if (!document.hasStorageAccess)
-    //     return;
-    //   document.hasStorageAccess((result) => 
-    //     document.getElementById("storageaccess").innerText = result);
-    // }
+    function displayStorageAccess(message) {
+      if (!document.hasStorageAccess)
+        return;
+      document.hasStorageAccess().then(result =>
+        document.getElementById("storageaccess").innerText = message + result);
+    }
 
-    // function requestStorageAccess() {
-    //   if (!document.requestStorageAccess) 
-    //     return;
+    function requestStorageAccessClicked() {
+      if (!document.requestStorageAccess)
+        return;
 
-    //   document.requestStorageAccess(displayStorageAccess);  
-    // }
+      document.requestStorageAccess()
+        .then(displayStorageAccess.bind(null, "RSA granted. Status:"))
+        .catch(displayStorageAccess.bind(null, "RSA failed. Status:"));
+    }
 
     function ready() {
       document.getElementById("domain").innerText = document.domain;
       readData();
-      //displayStorageAccess()
+      displayStorageAccess("StorageAccess: ")
     }
   </script>
 </head>
@@ -345,10 +347,10 @@
   <h1>Site Data Tester</h1>
   <button onclick="readData()">Read</button>
   <button onclick="writeData()">Write</button>
-  <!-- <button onclick="requestStorageAccess()">RequestStorageAccess</button> -->
+  <button onclick="requestStorageAccessClicked()">RequestStorageAccess</button>
   <p>
   <div style="width: 460px; font-size: 16px" id="output"></div>
-  <div style="width: 460px; font-size: 16px" id="storageaccess"></div>
+  <div style="width: 460px; font-size: 16px; margin-top: 16px" id="storageaccess"></div>
 </body>
 
 </html>
