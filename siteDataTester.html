@@ -338,7 +338,10 @@
         return;
 
       document.requestStorageAccess()
-        .then(displayStorageAccess.bind(null, "RSA granted."))
+        .then(() => {
+          displayStorageAccess("RSA granted.");
+          readData();
+        })
         .catch(displayStorageAccess.bind(null, "RSA failed."));
     }
 
